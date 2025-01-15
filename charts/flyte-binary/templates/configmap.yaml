@@ -40,7 +40,11 @@ data:
       show-source: true
       level: {{ default 1 .Values.configuration.logging.level }}
     propeller:
-      create-flyteworkflow-crd: true
+      create-flyteworkflow-crd: {{ .Values.configuration.propeller.createCRDs }}
+      {{- if .Values.configuration.propeller.literalOffloadingConfigEnabled }}
+      literal-offloading-config:
+        enabled: true
+      {{- end}}
     webhook:
       certDir: /var/run/flyte/certs
       localCert: true
@@ -61,14 +65,9 @@ data:
       k8s-array:
         logs:
           config: {{- include "flyte-binary.configuration.logging.plugins" . | nindent 12 }}
-      {{- if .Values.configuration.agentService }}
+      {{- if .Values.flyteagent.enabled }}
       agent-service:
       {{- tpl ( .Values.configuration.agentService | toYaml ) . | nindent 8 }}
-      {{- else if .Values.flyteagent.enable }}
-      agent-service:
-        defaultGrpcEndpoint: {{ include "flyte-binary.agent.name" . }}:{{ include "flyte-binary.agent.servicePort" . }}
-        supportedTaskTypes:
-        - bigquery_query_job_task
       {{- end }}
   002-database.yaml: |
     {{- with .Values.configuration.database }}
@@ -106,6 +105,21 @@ data:
           auth_type: accesskey
           {{- else }}
           {{- printf "Invalid value for S3 storage provider authentication type. Expected one of (iam, accesskey), but got: %s" .authType | fail }}
+          {{- end }}
+        {{- end }}
+        {{- else if eq "azure" .provider }}
+        {{- with .providerConfig.azure }}
+        kind: azure
+        config:
+          account: {{ .account }}
+          {{- if .key }}
+          key: {{ .key }}
+          {{- end }}
+          {{- if .configDomainSuffix }}
+          configDomainSuffix: {{ .configDomainSuffix }}
+          {{- end }}
+          {{- if .configUploadConcurrency }}
+          configUploadConcurrency: {{ .configUploadConcurrency }}
           {{- end }}
         {{- end }}
         {{- else if eq "gcs" .provider }}
