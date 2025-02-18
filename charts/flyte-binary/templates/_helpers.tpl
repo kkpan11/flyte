@@ -99,6 +99,8 @@ Get the Flyte user data prefix.
 {{- printf "s3://%s/data" $userDataContainer -}}
 {{- else if eq "gcs" .Values.configuration.storage.provider -}}
 {{- printf "gs://%s/data" $userDataContainer -}}
+{{- else if eq "azure" .Values.configuration.storage.provider -}}
+{{- printf "abfs://%s/data" $userDataContainer -}}
 {{- end -}}
 {{- end -}}
 
@@ -175,6 +177,24 @@ Get the Flyte service GRPC port.
 {{- end -}}
 
 {{/*
+Get the Flyte service GRPC paths.
+*/}}
+{{- define "flyte-binary.ingress.grpcPaths" -}}
+- /flyteidl.service.AdminService
+- /flyteidl.service.AdminService/*
+- /flyteidl.service.AuthMetadataService
+- /flyteidl.service.AuthMetadataService/*
+- /flyteidl.service.DataProxyService
+- /flyteidl.service.DataProxyService/*
+- /flyteidl.service.IdentityService
+- /flyteidl.service.IdentityService/*
+- /flyteidl.service.SignalService
+- /flyteidl.service.SignalService/*
+- /grpc.health.v1.Health
+- /grpc.health.v1.Health/*
+{{- end -}}
+
+{{/*
 Get the Flyte agent service GRPC port.
 */}}
 {{- define "flyte-binary.flyteagent.grpc.port" -}}
@@ -217,21 +237,3 @@ Flyte Agent selector labels
 {{ include "flyte-binary.baseLabels" . }}
 app.kubernetes.io/component: agent
 {{- end }}
-
-{{/*
-Get the name of the service account to use
-*/}}
-{{- define "flyte-binary.agent.serviceAccountName" -}}
-{{- if .Values.flyteagent.serviceAccount.create }}
-{{- default (include "flyte-binary.agent.name" .) .Values.flyteagent.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.flyteagent.serviceAccount.name }}
-{{- end }}
-{{- end }}
-
-{{/*
-Get the Flyte Agent service port.
-*/}}
-{{- define "flyte-binary.agent.servicePort" -}}
-{{- default 8000 .Values.flyteagent.service.port -}}
-{{- end -}}
